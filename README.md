@@ -114,6 +114,7 @@ addi-products-api/
 │   └── static/
 │       ├── index.html
 │       └── products.html
+├── docker-compose.yml              # PostgreSQL, Redis, Kafka
 ├── build.gradle.kts
 └── README.md
 ```
@@ -156,8 +157,51 @@ Invalid data returns `400 Bad Request`.
 ## Prerequisites
 
 - **Java 21** (JDK)
+- **Docker** (optional, for infrastructure)
 - **PostgreSQL** (database `addi_products`)
 - **Redis** (required for product list and search caching)
+
+---
+
+## Docker (Infrastructure)
+
+Start PostgreSQL, Redis, and Kafka with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+**Services:**
+
+| Service | Image | Port | Description |
+|---------|-------|------|-------------|
+| PostgreSQL | postgres:16-alpine | 5432 | Database `addi_products` |
+| Redis | redis:7-alpine | 6379 | Cache |
+| Zookeeper | bitnami/zookeeper:3.9 | 2181 | Kafka dependency |
+| Kafka | bitnami/kafka:3.6 | 9092 | Message broker |
+
+**Stop services:**
+
+```bash
+docker compose down
+```
+
+**Individual containers (alternative):**
+
+```bash
+# PostgreSQL
+docker run -d --name addi-postgres \
+  -e POSTGRES_DB=addi_products \
+  -e POSTGRES_USER=addi \
+  -e POSTGRES_PASSWORD=addi123 \
+  -p 5432:5432 \
+  postgres:16-alpine
+
+# Redis
+docker run -d --name addi-redis \
+  -p 6379:6379 \
+  redis:7-alpine
+```
 
 ---
 
@@ -183,11 +227,17 @@ spring:
 ## Running the Application
 
 ```bash
-# Create database (if it does not exist)
-createdb addi_products
+# 1. Start infrastructure (Docker)
+docker compose up -d
 
-# Run application
+# 2. Run application
 ./gradlew bootRun
+```
+
+**Without Docker:** Create database manually if needed:
+
+```bash
+createdb addi_products
 ```
 
 **Available URLs:**
@@ -206,6 +256,17 @@ createdb addi_products
 ```bash
 ./gradlew test
 ```
+
+**Test structure:**
+
+| Test | Type | Description |
+|------|------|-------------|
+| `ProductFactoryTest` | Unit | Factory validation and creation |
+| `ProductServiceTest` | Unit | Service logic with mocked repository |
+| `ProductRestControllerTest` | Integration | REST API endpoints |
+| `AddiProductsApiApplicationTests` | Integration | Context startup |
+
+Tests use `test` profile with H2 in-memory database (no Docker required).
 
 ---
 
