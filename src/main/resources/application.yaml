@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: addi-products-api
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/addi_products
+    username: addi
+    password: addi123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000  # 10 minutes
+      use-key-prefix: true
+      key-prefix: "addi-products:"
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    ia.dev.codytion: DEBUG

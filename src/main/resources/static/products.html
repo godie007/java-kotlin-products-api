@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product CRUD - Addi</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e8e8e8;
+            padding: 2rem;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .back-link {
+            color: #e94560;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border: 2px solid #e94560;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .back-link:hover {
+            background: #e94560;
+            color: white;
+        }
+        .form-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .form-card h2 { margin-bottom: 1rem; font-size: 1.2rem; color: #b8b8b8; }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        label { display: block; margin-bottom: 0.3rem; color: #b8b8b8; font-size: 0.9rem; }
+        input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #333;
+            border-radius: 6px;
+            background: #1a1a2e;
+            color: #e8e8e8;
+        }
+        input:focus { outline: none; border-color: #e94560; }
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #e94560; color: white; }
+        .btn-primary:hover { background: #ff6b6b; }
+        .btn-secondary { background: #333; color: #e8e8e8; }
+        .btn-secondary:hover { background: #444; }
+        .btn-danger { background: #c0392b; color: white; }
+        .btn-danger:hover { background: #e74c3c; }
+        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        th, td { padding: 1rem; text-align: left; }
+        th { background: rgba(233,69,96,0.2); color: #e94560; }
+        tr:hover { background: rgba(255,255,255,0.05); }
+        .actions { display: flex; gap: 0.5rem; }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #e8e8e8;
+            font-size: 1.1rem;
+        }
+        .empty-state.error { color: #e74c3c; }
+        #form-message.error { color: #e74c3c; margin-top: 0.5rem; font-size: 0.9rem; }
+        #form-message.success { color: #2ecc71; margin-top: 0.5rem; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Product Management</h1>
+        <a href="/" class="back-link">← Back to home</a>
+    </div>
+
+    <div class="form-card">
+        <h2 id="form-title">New product</h2>
+        <form id="product-form">
+            <input type="hidden" id="product-id">
+            <div class="form-grid">
+                <div>
+                    <label for="name">Name *</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div>
+                    <label for="description">Description</label>
+                    <input type="text" id="description">
+                </div>
+                <div>
+                    <label for="price">Price *</label>
+                    <input type="number" id="price" step="0.01" min="0" required>
+                </div>
+                <div>
+                    <label for="stock">Stock *</label>
+                    <input type="number" id="stock" min="0" required>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary" id="submit-btn">Save</button>
+                <button type="button" class="btn btn-secondary" id="cancel-btn" style="display:none">Cancel</button>
+            </div>
+            <div id="form-message"></div>
+        </form>
+    </div>
+
+    <div class="form-card">
+        <h2>Product list</h2>
+        <div class="search-bar" style="margin-bottom: 1rem;">
+            <input type="text" id="search-input" placeholder="Search by name or description..." style="max-width: 400px;">
+            <button type="button" class="btn btn-secondary" id="search-btn" style="margin-left: 0.5rem;">Search</button>
+            <button type="button" class="btn btn-secondary" id="clear-search-btn">Clear</button>
+        </div>
+        <div id="products-table">
+            <div class="empty-state">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api/products';
+        const form = document.getElementById('product-form');
+        const formTitle = document.getElementById('form-title');
+        const submitBtn = document.getElementById('submit-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const formMessage = document.getElementById('form-message');
+
+        function showMessage(msg, isError = false) {
+            formMessage.textContent = msg;
+            formMessage.className = isError ? 'error' : 'success';
+            formMessage.style.display = msg ? 'block' : 'none';
+            if (msg) setTimeout(() => { formMessage.textContent = ''; formMessage.style.display = 'none'; }, 3000);
+        }
+
+        async function loadProducts(searchQuery = '') {
+            const container = document.getElementById('products-table');
+            try {
+                const url = searchQuery ? `${API}/search?q=${encodeURIComponent(searchQuery)}` : API;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Error ' + res.status);
+                const data = await res.json();
+                const products = Array.isArray(data) ? data : (data.content || data.products || []);
+                renderTable(products);
+            } catch (e) {
+                container.innerHTML = '<div class="empty-state error">Error loading products. Please verify the API is available.</div>';
+            }
+        }
+
+        function doSearch() {
+            const query = document.getElementById('search-input').value.trim();
+            loadProducts(query);
+        }
+
+        function renderTable(products) {
+            const container = document.getElementById('products-table');
+            const list = Array.isArray(products) ? products : [];
+            if (list.length === 0) {
+                container.innerHTML = '<div class="empty-state">No products found. Create one above.</div>';
+                return;
+            }
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Name</th><th>Description</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        ${list.map(p => `
+                            <tr>
+                                <td>${p.id}</td>
+                                <td>${escapeHtml(p.name)}</td>
+                                <td>${escapeHtml(p.description || '-')}</td>
+                                <td>$${Number(p.price).toFixed(2)}</td>
+                                <td>${p.stock}</td>
+                                <td class="actions">
+                                    <button type="button" class="btn btn-secondary" data-action="edit" data-id="${p.id}">Edit</button>
+                                    <button type="button" class="btn btn-danger" data-action="delete" data-id="${p.id}">Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function escapeHtml(s) {
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('product-id').value;
+            const body = {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value || null,
+                price: parseFloat(document.getElementById('price').value),
+                stock: parseInt(document.getElementById('stock').value, 10)
+            };
+            try {
+                const url = id ? `${API}/${id}` : API;
+                const res = await fetch(url, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) throw new Error('Save error');
+                showMessage(id ? 'Product updated' : 'Product created');
+                resetForm();
+                loadProducts();
+            } catch (e) {
+                showMessage('Error saving product', true);
+            }
+        };
+
+        cancelBtn.onclick = resetForm;
+
+        function resetForm() {
+            document.getElementById('product-id').value = '';
+            form.reset();
+            formTitle.textContent = 'New product';
+            submitBtn.textContent = 'Save';
+            cancelBtn.style.display = 'none';
+        }
+
+        async function editProduct(id) {
+            try {
+                const res = await fetch(`${API}/${id}`);
+                const p = await res.json();
+                document.getElementById('product-id').value = p.id;
+                document.getElementById('name').value = p.name;
+                document.getElementById('description').value = p.description || '';
+                document.getElementById('price').value = p.price;
+                document.getElementById('stock').value = p.stock;
+                formTitle.textContent = 'Edit product';
+                submitBtn.textContent = 'Update';
+                cancelBtn.style.display = 'inline-block';
+            } catch (e) {
+                showMessage('Error loading product', true);
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Delete this product?')) return;
+            try {
+                const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete error');
+                showMessage('Product deleted');
+                loadProducts();
+            } catch (e) {
+                showMessage('Error deleting product', true);
+            }
+        }
+
+        // Event delegation for dynamic buttons
+        document.getElementById('products-table').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const id = parseInt(btn.dataset.id, 10);
+            if (isNaN(id)) return;
+            if (btn.dataset.action === 'edit') editProduct(id);
+            else if (btn.dataset.action === 'delete') deleteProduct(id);
+        });
+
+        document.getElementById('search-btn').onclick = doSearch;
+        document.getElementById('clear-search-btn').onclick = () => {
+            document.getElementById('search-input').value = '';
+            loadProducts();
+        };
+        document.getElementById('search-input').onkeypress = (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+        };
+
+        loadProducts();
+    </script>
+</body>
+</html>

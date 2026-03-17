@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Addi Products API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #e8e8e8;
+            padding: 2rem;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #b8b8b8;
+            margin-bottom: 2rem;
+        }
+        .links {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        a {
+            color: #e94560;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border: 2px solid #e94560;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        a:hover {
+            background: #e94560;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Addi Products API</h1>
+        <p>Welcome to the Addi Products API. The application is running successfully.</p>
+        <div class="links">
+            <a href="/products">Product CRUD</a>
+            <a href="/actuator/health">Health Status</a>
+            <a href="/actuator/info">Info</a>
+        </div>
+    </div>
+</body>
+</html>
