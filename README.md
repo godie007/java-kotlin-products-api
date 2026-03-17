@@ -1,12 +1,12 @@
 # Addi Products API
 
-**Product Management API** — Enterprise solution for product catalog and administration with PostgreSQL persistence, caching, and integrated web interface.
+**Product Management API** — Enterprise solution for product catalog and administration with PostgreSQL persistence, Redis caching, and integrated web interface.
 
 ---
 
 ## Executive Summary
 
-Addi Products API is a backend application built with **Kotlin** and **Spring Boot 4** that exposes REST services for product CRUD operations. It includes an integrated web interface for direct administration and supports configurable caching (in-memory or Redis) to optimize query performance.
+Addi Products API is a backend application built with **Kotlin** and **Spring Boot 4** that exposes REST services for product CRUD operations. It implements **Hexagonal Architecture**, **Factory pattern**, and **Dependency Injection**. Features include an integrated web interface, product search with Redis cache, and input validation.
 
 | Aspect | Detail |
 |--------|--------|
@@ -32,7 +32,8 @@ Addi Products API is a backend application built with **Kotlin** and **Spring Bo
                     ┌─────────────────────────────┼────────────────────────────┐
                     │              APPLICATION (Use Cases)                      │
                     │  ┌──────────────────────────▼──────────────────────┐     │
-                    │  │  ProductService (+ Redis cache)                  │     │
+                    │  │  ProductService ← ProductFactory (DI)            │     │
+                    │  │  (+ Redis cache)                                 │     │
                     │  └──────────────────────────┬──────────────────────┘     │
                     └─────────────────────────────┼─────────────────────────────┘
                                                   │
@@ -54,6 +55,17 @@ Addi Products API is a backend application built with **Kotlin** and **Spring Bo
 
 ---
 
+## Design Patterns
+
+| Pattern | Implementation |
+|---------|-----------------|
+| **Hexagonal Architecture** | Domain, Application, Adapters (inbound/outbound) |
+| **Factory** | `ProductFactory` — creates and validates Product entities |
+| **Dependency Injection** | Constructor injection via Spring; dependencies on ports (interfaces) |
+| **Ports & Adapters** | `ProductServicePort` (inbound), `ProductRepositoryPort` (outbound) |
+
+---
+
 ## Technology Stack
 
 | Technology | Purpose |
@@ -63,7 +75,7 @@ Addi Products API is a backend application built with **Kotlin** and **Spring Bo
 | **Spring Data JPA** | Persistence and data access |
 | **PostgreSQL** | Relational database |
 | **Spring Cache** | Query caching (memory or Redis) |
-| **Spring Data Redis** | Distributed cache (optional) |
+| **Spring Data Redis** | Distributed cache for product list and search |
 | **Spring Actuator** | Monitoring and metrics |
 
 ---
@@ -74,19 +86,24 @@ Addi Products API is a backend application built with **Kotlin** and **Spring Bo
 addi-products-api/
 ├── src/main/kotlin/ia/dev/codytion/addiproductsapi/
 │   ├── AddiProductsApiApplication.kt
+│   ├── CacheEvictOnStartup.kt         # Clears Redis cache on startup
 │   ├── WebConfig.kt
 │   ├── domain/                          # Core business logic
 │   │   └── product/
-│   │       ├── Product.kt                # Domain entity
+│   │       ├── Product.kt               # Domain entity
 │   │       └── port/
 │   │           └── ProductRepositoryPort.kt
 │   ├── application/                     # Use cases
 │   │   └── product/
-│   │       └── ProductService.kt
+│   │       ├── ProductFactory.kt        # Factory pattern
+│   │       ├── ProductService.kt        # Implements ProductServicePort
+│   │       └── port/
+│   │           └── ProductServicePort.kt # Inbound port (DI)
 │   └── adapter/
 │       ├── inbound/                      # Driving adapters
 │       │   └── rest/
-│       │       └── ProductRestController.kt
+│       │       ├── ProductRestController.kt
+│       │       └── ProductValidationAdvice.kt
 │       └── outbound/                     # Driven adapters
 │           └── persistence/
 │               ├── ProductJpaEntity.kt
@@ -125,6 +142,14 @@ addi-products-api/
   "stock": 10
 }
 ```
+
+### Validation (ProductFactory)
+
+- **name**: Required, non-blank
+- **price**: Must be ≥ 0
+- **stock**: Must be ≥ 0 (default: 0)
+
+Invalid data returns `400 Bad Request`.
 
 ---
 

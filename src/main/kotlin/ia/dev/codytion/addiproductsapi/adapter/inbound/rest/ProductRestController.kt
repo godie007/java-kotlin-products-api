@@ -1,6 +1,6 @@
 package ia.dev.codytion.addiproductsapi.adapter.inbound.rest
 
-import ia.dev.codytion.addiproductsapi.application.product.ProductService
+import ia.dev.codytion.addiproductsapi.application.product.port.ProductServicePort
 import ia.dev.codytion.addiproductsapi.domain.product.Product
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -8,11 +8,13 @@ import org.springframework.web.bind.annotation.*
 
 /**
  * Inbound adapter (primary/driving) for product REST API.
- * Exposes HTTP endpoints and delegates to application layer.
+ * Depends on ProductServicePort (abstraction) via Dependency Injection.
  */
 @RestController
 @RequestMapping("/api/products")
-class ProductRestController(private val productService: ProductService) {
+class ProductRestController(
+    private val productService: ProductServicePort
+) {
 
     @GetMapping
     fun list(): List<Product> = productService.findAll()
