@@ -114,7 +114,7 @@ addi-products-api/
 │   └── static/
 │       ├── index.html
 │       └── products.html
-├── docker-compose.yml              # PostgreSQL, Redis, Kafka
+├── docker-compose.yml              # PostgreSQL, Redis, Zookeeper, Kafka
 ├── build.gradle.kts
 └── README.md
 ```
@@ -157,7 +157,7 @@ Invalid data returns `400 Bad Request`.
 ## Prerequisites
 
 - **Java 21** (JDK)
-- **Docker** (optional, for infrastructure)
+- **Docker** (optional, for PostgreSQL, Redis, Kafka)
 - **PostgreSQL** (database `addi_products`)
 - **Redis** (required for product list and search caching)
 
@@ -165,7 +165,7 @@ Invalid data returns `400 Bad Request`.
 
 ## Docker (Infrastructure)
 
-Start PostgreSQL, Redis, and Kafka with Docker Compose:
+Start PostgreSQL, Redis, Zookeeper, and Kafka with Docker Compose:
 
 ```bash
 docker compose up -d
@@ -177,8 +177,14 @@ docker compose up -d
 |---------|-------|------|-------------|
 | PostgreSQL | postgres:16-alpine | 5432 | Database `addi_products` |
 | Redis | redis:7-alpine | 6379 | Cache |
-| Zookeeper | bitnami/zookeeper:3.9 | 2181 | Kafka dependency |
-| Kafka | bitnami/kafka:3.6 | 9092 | Message broker |
+| Zookeeper | confluentinc/cp-zookeeper:7.8.7 | 2181 | Kafka coordination |
+| Kafka | confluentinc/cp-kafka:7.8.7 | 9092 | Message broker (Confluent Platform) |
+
+**Connection details:**
+
+- **PostgreSQL**: `localhost:5432` (user: `addi`, password: `addi123`, db: `addi_products`)
+- **Redis**: `localhost:6379`
+- **Kafka**: `localhost:9092` (external clients); `kafka:29092` (from other Docker containers)
 
 **Stop services:**
 
@@ -202,6 +208,8 @@ docker run -d --name addi-redis \
   -p 6379:6379 \
   redis:7-alpine
 ```
+
+> **Note:** Kafka uses Confluent Platform images (`confluentinc/cp-*`) instead of Bitnami or Apache Kafka due to compatibility and stability in Docker environments.
 
 ---
 
