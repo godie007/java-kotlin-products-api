@@ -19,19 +19,37 @@ Addi Products API is a backend application built with **Kotlin** and **Spring Bo
 
 ## Architecture
 
+**Hexagonal Architecture (Ports & Adapters)**
+
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Web Interface │     │   REST API       │     │   ProductService │
-│   (HTML/JS)     │────▶│   /api/products  │────▶│   + Cache       │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-                                                           │
-                          ┌────────────────────────────────┼────────────────────────────────┐
-                          │                                │                                │
-                          ▼                                ▼                                ▼
-                   ┌──────────────┐               ┌──────────────┐               ┌──────────────┐
-                   │  PostgreSQL  │               │    Redis     │               │    Kafka     │
-                   │  (persist.)  │               │   (cache)    │               │  (excluded)  │
-                   └──────────────┘               └──────────────┘               └──────────────┘
+                    ┌─────────────────────────────────────────────────────────┐
+                    │                    INBOUND ADAPTERS                       │
+                    │  ┌─────────────────────────────────────────────────┐    │
+                    │  │  ProductRestController (REST API)                │    │
+                    │  └──────────────────────────┬──────────────────────┘    │
+                    └─────────────────────────────┼────────────────────────────┘
+                                                  │
+                    ┌─────────────────────────────┼────────────────────────────┐
+                    │              APPLICATION (Use Cases)                      │
+                    │  ┌──────────────────────────▼──────────────────────┐     │
+                    │  │  ProductService (+ Redis cache)                  │     │
+                    │  └──────────────────────────┬──────────────────────┘     │
+                    └─────────────────────────────┼─────────────────────────────┘
+                                                  │
+                    ┌─────────────────────────────┼────────────────────────────┐
+                    │                    DOMAIN                                 │
+                    │  ┌──────────────┐  ┌────────▼────────┐                    │
+                    │  │   Product    │  │ ProductRepositoryPort │               │
+                    │  │  (entity)   │  │    (outbound port)    │               │
+                    │  └──────────────┘  └────────┬────────┘                    │
+                    └────────────────────────────┼─────────────────────────────┘
+                                                  │
+                    ┌─────────────────────────────┼────────────────────────────┐
+                    │                   OUTBOUND ADAPTERS                       │
+                    │  ┌──────────────────────────▼──────────────────────┐     │
+                    │  │  ProductRepositoryAdapter → JPA → PostgreSQL     │     │
+                    │  └─────────────────────────────────────────────────┘     │
+                    └──────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -50,24 +68,35 @@ Addi Products API is a backend application built with **Kotlin** and **Spring Bo
 
 ---
 
-## Project Structure
+## Project Structure (Hexagonal)
 
 ```
 addi-products-api/
-├── src/main/
-│   ├── kotlin/ia/dev/codytion/addiproductsapi/
-│   │   ├── AddiProductsApiApplication.kt    # Application entry point
-│   │   ├── WebConfig.kt                      # Routes and redirects
+├── src/main/kotlin/ia/dev/codytion/addiproductsapi/
+│   ├── AddiProductsApiApplication.kt
+│   ├── WebConfig.kt
+│   ├── domain/                          # Core business logic
 │   │   └── product/
-│   │       ├── Product.kt                    # JPA entity
-│   │       ├── ProductRepository.kt           # JPA repository
-│   │       ├── ProductService.kt              # Business logic + cache
-│   │       └── ProductApiController.kt        # REST endpoints
-│   └── resources/
-│       ├── application.yaml                  # Configuration
-│       └── static/
-│           ├── index.html                    # Home page
-│           └── products.html                 # Product CRUD
+│   │       ├── Product.kt                # Domain entity
+│   │       └── port/
+│   │           └── ProductRepositoryPort.kt
+│   ├── application/                     # Use cases
+│   │   └── product/
+│   │       └── ProductService.kt
+│   └── adapter/
+│       ├── inbound/                      # Driving adapters
+│       │   └── rest/
+│       │       └── ProductRestController.kt
+│       └── outbound/                     # Driven adapters
+│           └── persistence/
+│               ├── ProductJpaEntity.kt
+│               ├── ProductJpaRepository.kt
+│               └── ProductRepositoryAdapter.kt
+├── src/main/resources/
+│   ├── application.yaml
+│   └── static/
+│       ├── index.html
+│       └── products.html
 ├── build.gradle.kts
 └── README.md
 ```
